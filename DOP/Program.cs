@@ -27,33 +27,44 @@ int accentIdx = Math.Max(0, Array.FindIndex(accentCycle, c => c == cfg.AccentCol
 
 Color Accent() => accentCycle[accentIdx];
 
-ColorScheme AccentScheme() => new()
-{
-    Normal    = new TAttr(Accent(), cfg.Background),
-    Focus     = new TAttr(cfg.Background, Accent()),
-    HotNormal = new TAttr(Accent(), cfg.Background),
-    HotFocus  = new TAttr(cfg.Background, Accent()),
-    Disabled  = new TAttr(Color.DarkGray, cfg.Background),
-};
+// Cached schemes — rebuilt only on theme change, not on every keypress
+ColorScheme _gridScheme   = null!;
+ColorScheme _listScheme   = null!;
+ColorScheme _accentScheme = null!;
 
-ColorScheme GridScheme() => new()
+void RebuildSchemes()
 {
-    Normal    = new TAttr(cfg.GridColor, cfg.Background),
-    Focus     = new TAttr(cfg.GridColor, cfg.Background),
-    HotNormal = new TAttr(Accent(), cfg.Background),
-    HotFocus  = new TAttr(cfg.Background, Accent()),
-    Disabled  = new TAttr(Color.DarkGray, cfg.Background),
-};
+    var accent = Accent();
+    _accentScheme = new ColorScheme
+    {
+        Normal    = new TAttr(accent, cfg.Background),
+        Focus     = new TAttr(cfg.Background, accent),
+        HotNormal = new TAttr(accent, cfg.Background),
+        HotFocus  = new TAttr(cfg.Background, accent),
+        Disabled  = new TAttr(Color.DarkGray, cfg.Background),
+    };
+    _gridScheme = new ColorScheme
+    {
+        Normal    = new TAttr(cfg.GridColor, cfg.Background),
+        Focus     = new TAttr(cfg.GridColor, cfg.Background),
+        HotNormal = new TAttr(accent, cfg.Background),
+        HotFocus  = new TAttr(cfg.Background, accent),
+        Disabled  = new TAttr(Color.DarkGray, cfg.Background),
+    };
+    _listScheme = new ColorScheme
+    {
+        Normal    = new TAttr(Color.White, cfg.Background),
+        Focus     = new TAttr(cfg.Background, accent),
+        HotNormal = new TAttr(accent, cfg.Background),
+        HotFocus  = new TAttr(cfg.Background, accent),
+        Disabled  = new TAttr(Color.DarkGray, cfg.Background),
+    };
+}
+RebuildSchemes();
 
-// ListView needs its own scheme so the selected row is visually distinct
-ColorScheme ListScheme() => new()
-{
-    Normal    = new TAttr(Color.White, cfg.Background),
-    Focus     = new TAttr(cfg.Background, Accent()),   // selected row: accent background
-    HotNormal = new TAttr(Accent(), cfg.Background),
-    HotFocus  = new TAttr(cfg.Background, Accent()),
-    Disabled  = new TAttr(Color.DarkGray, cfg.Background),
-};
+ColorScheme AccentScheme() => _accentScheme;
+ColorScheme GridScheme()   => _gridScheme;
+ColorScheme ListScheme()   => _listScheme;
 
 // ── ASCII title ───────────────────────────────────────────────────────────────
 
@@ -74,6 +85,9 @@ const int ClockW    = 24;
 const int SysH      = 5;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+
+// Yield CPU to anything launched from the menu
+Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
 
 Application.Init();
 var top = new Toplevel();
@@ -211,6 +225,7 @@ top.Add(statusBar);
 
 void ApplyTheme()
 {
+    RebuildSchemes();
     titleLbl.ColorScheme      = AccentScheme();
     launcherFrame.ColorScheme = GridScheme();
     clockFrame.ColorScheme    = GridScheme();
@@ -349,7 +364,7 @@ Application.AddTimeout(TimeSpan.FromSeconds(3), () =>
     return true;
 });
 
-Application.AddTimeout(TimeSpan.FromSeconds(20), () => { _ = RefreshNetworkAsync(); return true; });
+Application.AddTimeout(TimeSpan.FromSeconds(30), () => { _ = RefreshNetworkAsync(); return true; });
 Application.AddTimeout(TimeSpan.FromMinutes(10), () => { _ = RefreshWeatherAsync(); return true; });
 
 _ = RefreshWeatherAsync();
