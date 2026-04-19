@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\My_Dash\\MyDesk\\DOP\\DOP.csproj": {}
+    "D:\\Projects\\My_Dash\\MyDesk\\dop\\DOP.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\My_Dash\\MyDesk\\DOP\\DOP.csproj": {
+    "D:\\Projects\\My_Dash\\MyDesk\\dop\\DOP.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\My_Dash\\MyDesk\\DOP\\DOP.csproj",
+        "projectUniqueName": "D:\\Projects\\My_Dash\\MyDesk\\dop\\DOP.csproj",
         "projectName": "dop",
-        "projectPath": "D:\\Projects\\My_Dash\\MyDesk\\DOP\\DOP.csproj",
+        "projectPath": "D:\\Projects\\My_Dash\\MyDesk\\dop\\DOP.csproj",
         "packagesPath": "D:\\NuGetPackages",
-        "outputPath": "D:\\Projects\\My_Dash\\MyDesk\\DOP\\obj\\",
+        "outputPath": "D:\\Projects\\My_Dash\\MyDesk\\dop\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

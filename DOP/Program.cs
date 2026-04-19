@@ -66,7 +66,7 @@ const int SysH      = 5;
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 Application.Init();
-var top = Application.Top;
+var top = new Toplevel();
 
 // ── Title ─────────────────────────────────────────────────────────────────────
 
@@ -94,35 +94,43 @@ var launcherFrame = new FrameView
 };
 top.Add(launcherFrame);
 
+var launcherItems = new System.Collections.ObjectModel.ObservableCollection<string>();
+
+var launcherList = new ListView
+{
+    X        = 0,
+    Y        = 0,
+    Width    = Dim.Fill(),
+    Height   = Dim.Fill(),
+    CanFocus = true,
+    ColorScheme = GridScheme(),
+};
+launcherFrame.Add(launcherList);
+
+launcherList.OpenSelectedItem += (_, e) =>
+{
+    if (e.Item < 0 || e.Item >= cfg.Links.Count) return;
+    var link = cfg.Links[e.Item];
+    if (link.IsSeparator) return;
+    if (link.Path == "EXIT") { Application.RequestStop(); return; }
+    try { Process.Start(new ProcessStartInfo(link.Path) { UseShellExecute = true }); }
+    catch { }
+};
+
 void BuildLauncher()
 {
-    launcherFrame.RemoveAll();
-    int y = 0;
+    launcherItems.Clear();
     foreach (var link in cfg.Links)
     {
-        Label v;
         if (link.IsSeparator)
-        {
-            v = new Label
-            {
-                X = 0, Y = y, Width = Dim.Fill(),
-                Text = " " + new string('─', LauncherW - 6),
-                ColorScheme = GridScheme(),
-            };
-        }
+            launcherItems.Add(" " + new string('─', LauncherW - 6));
         else
         {
-            var key  = link.Hotkey.Length > 0 ? $"{link.Hotkey,-3}" : "   ";
-            v = new Label
-            {
-                X = 0, Y = y, Width = Dim.Fill(),
-                Text = $"[{key}] {link.Label}",
-                ColorScheme = link.Path == "EXIT" ? AccentScheme() : GridScheme(),
-            };
+            var key = link.Hotkey.Length > 0 ? $"{link.Hotkey,-3}" : "   ";
+            launcherItems.Add($"[{key}] {link.Label}");
         }
-        launcherFrame.Add(v);
-        y++;
     }
+    launcherList.SetSource(launcherItems);
 }
 
 BuildLauncher();
@@ -294,7 +302,7 @@ _ = RefreshNetworkAsync();
 
 // ── Run ───────────────────────────────────────────────────────────────────────
 
-Application.Run();
+Application.Run(top);
 Application.Shutdown();
 cpuCounter?.Dispose();
 ramCounter?.Dispose();

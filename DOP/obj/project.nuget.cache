@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/iMRXCLNPlw=",
+  "dgSpecHash": "HtkiHoj7q/w=",
   "success": true,
-  "projectFilePath": "D:\\Projects\\My_Dash\\MyDesk\\DOP\\DOP.csproj",
+  "projectFilePath": "D:\\Projects\\My_Dash\\MyDesk\\dop\\DOP.csproj",
   "expectedPackageFiles": [
     "D:\\NuGetPackages\\colorhelper\\1.8.1\\colorhelper.1.8.1.nupkg.sha512",
     "D:\\NuGetPackages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
