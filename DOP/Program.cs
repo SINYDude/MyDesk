@@ -45,6 +45,16 @@ ColorScheme GridScheme() => new()
     Disabled  = new TAttr(Color.DarkGray, cfg.Background),
 };
 
+// ListView needs its own scheme so the selected row is visually distinct
+ColorScheme ListScheme() => new()
+{
+    Normal    = new TAttr(Color.White, cfg.Background),
+    Focus     = new TAttr(cfg.Background, Accent()),   // selected row: accent background
+    HotNormal = new TAttr(Accent(), cfg.Background),
+    HotFocus  = new TAttr(cfg.Background, Accent()),
+    Disabled  = new TAttr(Color.DarkGray, cfg.Background),
+};
+
 // ── ASCII title ───────────────────────────────────────────────────────────────
 
 const string AsciiTitle =
@@ -85,55 +95,48 @@ top.Add(titleLbl);
 
 var launcherFrame = new FrameView
 {
-    Title  = "Launcher",
-    X      = 0,
-    Y      = TitleH,
-    Width  = LauncherW,
-    Height = Dim.Fill(1),
+    Title    = "Launcher",
+    X        = 0,
+    Y        = TitleH,
+    Width    = LauncherW,
+    Height   = Dim.Fill(1),
+    CanFocus = true,
     ColorScheme = GridScheme(),
 };
 top.Add(launcherFrame);
 
-var launcherItems = new System.Collections.ObjectModel.ObservableCollection<string>();
-
-var launcherList = new ListView
-{
-    X        = 0,
-    Y        = 0,
-    Width    = Dim.Fill(),
-    Height   = Dim.Fill(),
-    CanFocus = true,
-    ColorScheme = GridScheme(),
-};
-launcherFrame.Add(launcherList);
-
-launcherList.OpenSelectedItem += (_, e) =>
-{
-    if (e.Item < 0 || e.Item >= cfg.Links.Count) return;
-    var link = cfg.Links[e.Item];
-    if (link.IsSeparator) return;
-    if (link.Path == "EXIT") { Application.RequestStop(); return; }
-    try { Process.Start(new ProcessStartInfo(link.Path) { UseShellExecute = true }); }
-    catch { }
-};
+int selectedIdx = 0;
+var launcherLabels = new List<Label>();
 
 void BuildLauncher()
 {
-    launcherItems.Clear();
-    foreach (var link in cfg.Links)
+    launcherFrame.RemoveAll();
+    launcherLabels.Clear();
+    // clamp selection after config reload
+    if (selectedIdx >= cfg.Links.Count) selectedIdx = 0;
+
+    for (int i = 0; i < cfg.Links.Count; i++)
     {
-        if (link.IsSeparator)
-            launcherItems.Add(" " + new string('─', LauncherW - 6));
-        else
+        var link = cfg.Links[i];
+        var lbl = new Label
         {
-            var key = link.Hotkey.Length > 0 ? $"{link.Hotkey,-3}" : "   ";
-            launcherItems.Add($"[{key}] {link.Label}");
-        }
+            X    = 0,
+            Y    = i,
+            Width = Dim.Fill(),
+            Text  = link.IsSeparator
+                ? " " + new string('─', LauncherW - 6)
+                : $"[{(link.Hotkey.Length > 0 ? $"{link.Hotkey,-3}" : "   ")}] {link.Label}",
+            ColorScheme = (!link.IsSeparator && i == selectedIdx)
+                ? ListScheme()
+                : GridScheme(),
+        };
+        launcherFrame.Add(lbl);
+        launcherLabels.Add(lbl);
     }
-    launcherList.SetSource(launcherItems);
 }
 
 BuildLauncher();
+
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 
@@ -248,6 +251,28 @@ Application.KeyDown += (_, e) =>
         return;
     }
 
+    // Launcher navigation — handled globally so focus state doesn't matter
+    if (key == KeyCode.CursorUp)
+    {
+        MoveSelection(-1);
+        e.Handled = true;
+        return;
+    }
+
+    if (key == KeyCode.CursorDown)
+    {
+        MoveSelection(1);
+        e.Handled = true;
+        return;
+    }
+
+    if (key == KeyCode.Enter)
+    {
+        ActivateSelected();
+        e.Handled = true;
+        return;
+    }
+
     foreach (var link in cfg.Links)
     {
         if (link.IsSeparator || link.Path.Length == 0 || link.Hotkey.Length == 0) continue;
@@ -261,6 +286,33 @@ Application.KeyDown += (_, e) =>
         }
     }
 };
+
+void MoveSelection(int dir)
+{
+    int next = selectedIdx + dir;
+    while (next >= 0 && next < cfg.Links.Count)
+    {
+        if (!cfg.Links[next].IsSeparator)
+        {
+            launcherLabels[selectedIdx].ColorScheme = GridScheme();
+            selectedIdx = next;
+            launcherLabels[selectedIdx].ColorScheme = ListScheme();
+            return;
+        }
+        next += dir;
+    }
+}
+
+void ActivateSelected()
+{
+    int idx = selectedIdx;
+    if (idx < 0 || idx >= cfg.Links.Count) return;
+    var link = cfg.Links[idx];
+    if (link.IsSeparator) return;
+    if (link.Path == "EXIT") { Application.RequestStop(); return; }
+    try { Process.Start(new ProcessStartInfo(link.Path) { UseShellExecute = true }); }
+    catch { }
+}
 
 // ── Timers ────────────────────────────────────────────────────────────────────
 
@@ -285,7 +337,10 @@ Application.AddTimeout(TimeSpan.FromSeconds(3), () =>
     try
     {
         if (cpuCounter is not null)
-            cpuLbl.Text = $"CPU : {cpuCounter.NextValue(),3:F0}%  [{MiniBar(cpuCounter.NextValue(), 100, 10)}]";
+        {
+            float cpu = cpuCounter.NextValue();
+            cpuLbl.Text = $"CPU : {cpu,3:F0}%  [{MiniBar(cpu, 100, 10)}]";
+        }
 
         if (ramCounter is not null)
             ramLbl.Text = $"RAM : {ramCounter.NextValue() / 1024:F1} GB available";
@@ -301,6 +356,7 @@ _ = RefreshWeatherAsync();
 _ = RefreshNetworkAsync();
 
 // ── Run ───────────────────────────────────────────────────────────────────────
+
 
 Application.Run(top);
 Application.Shutdown();
